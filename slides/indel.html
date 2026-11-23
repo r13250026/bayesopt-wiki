@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bayesian Optimization 貝葉斯最佳化入門教學</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-sub: #475569;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --secondary: #0d9488;
+      --secondary-light: #f0fdfa;
+      --amber: #d97706;
+      --amber-light: #fffbeb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Top Progress Bar */
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background: #e2e8f0;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--primary);
+      width: 10%;
+      transition: width 0.3s ease;
+    }
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 40px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .badge {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+    /* Slides Container */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px 48px;
+    }
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 1020px;
+      animation: fadeIn 0.3s ease;
+    }
+    .slide.active { display: block; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .tag {
+      display: inline-block;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 4px 12px;
+      border-radius: 6px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: 3rem;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      color: var(--text-main);
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+    .subtitle {
+      font-size: 1.15rem;
+      color: var(--text-sub);
+      margin-bottom: 30px;
+      line-height: 1.6;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    }
+    .card h3 {
+      font-size: 1.18rem;
+      margin-bottom: 10px;
+      color: var(--text-main);
+    }
+    .card p, .card li {
+      color: var(--text-sub);
+      line-height: 1.65;
+      font-size: 1rem;
+    }
+    ul { padding-left: 20px; }
+    li { margin-bottom: 8px; }
+    .callout {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      padding: 18px 22px;
+      border-radius: 0 10px 10px 0;
+      margin-top: 24px;
+      color: var(--text-main);
+      line-height: 1.6;
+      font-size: 1.02rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--surface);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    }
+    th, td {
+      padding: 16px 20px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      line-height: 1.5;
+    }
+    th {
+      background: #f1f5f9;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+    td { color: var(--text-sub); }
+    .visual-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+    }
+    .step-num {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      margin-bottom: 10px;
+    }
+    .formula-pill {
+      display: inline-block;
+      background: #f1f5f9;
+      color: var(--primary);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    /* Footer Controls */
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 40px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+    button {
+      background: var(--surface);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 9px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    button:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+    button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+
+  <header>
+    <div><strong style="color: var(--text-main);">Bayesian Optimization</strong> ｜ 貝葉斯最佳化入門教學</div>
+    <div class="badge" id="slideCounter">1 / 10</div>
+  </header>
+
+  <main>
+    <!-- Slide 1: Cover -->
+    <section class="slide active">
+      <div class="tag">零基礎概念導讀</div>
+      <h1>Bayesian Optimization<br>貝葉斯最佳化</h1>
+      <p class="subtitle">當每次測試都既昂貴又不知道內部公式時，如何用「最少的嘗試次數」精準找到最佳解？</p>
+      <div class="grid-3">
+        <div class="card">
+          <h3>🎯 核心定位</h3>
+          <p>專為「評估成本極高、無明確公式」的黑箱問題所設計的智慧搜尋方法。</p>
+        </div>
+        <div class="card">
+          <h3>🧠 運作關鍵</h3>
+          <p>邊測試邊建立機率預測地圖，根據歷史經驗決定最有價值的下一步。</p>
+        </div>
+        <div class="card">
+          <h3>🚀 學習目標</h3>
+          <p>理解黑箱問題痛點、兩大核心元件（代理模型與採集函數）與完整迴圈。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 2: What is Expensive Black-Box Function -->
+    <section class="slide">
+      <div class="tag">01 ｜ 問題背景</div>
+      <h2>什麼是「昂貴的黑箱函數」？</h2>
+      <p class="subtitle">我們想找到一組輸入參數 x，讓輸出表現 f(x) 達到最高，但面臨三大限制：</p>
+      <div class="grid-3">
+        <div class="card">
+          <h3>📦 黑箱 (Black-box)</h3>
+          <p>不知道 f(x) 的內部數學公式，無法直接透過微分（梯度下降）算出極值方向。</p>
+        </div>
+        <div class="card">
+          <h3>💸 評估昂貴 (Expensive)</h3>
+          <p>每測試一組參數，都要耗費大量時間、金錢或算力（例如訓練大型模型數天）。</p>
+        </div>
+        <div class="card">
+          <h3>〰️ 存在雜訊 (Noisy)</h3>
+          <p>相同參數重複測試兩次，結果可能出現隨機誤差，無法只憑單次結果下定論。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>核心挑戰：</strong> 因為預算與時間有限，我們沒有本錢試幾千次，必須讓每一次測試都發揮最大情報價值。
+      </div>
+    </section>
+
+    <!-- Slide 3: Intuitive Analogy -->
+    <section class="slide">
+      <div class="tag">02 ｜ 生活化直覺</div>
+      <h2>生活比喻：蒙眼在山脈中尋找最高峰</h2>
+      <p class="subtitle">想像你被蒙上雙眼放在一座未知山脈中，手邊只有一支能測量當前海拔的儀器。</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>🥾 為什麼不能隨便亂走？</h3>
+          <ul>
+            <li>你看不見整座山的全貌（<strong>黑箱</strong>）。</li>
+            <li>每跨出一步都非常耗費體力（<strong>評估昂貴</strong>）。</li>
+            <li>因此你不能漫無目的地走遍整座山脈。</li>
+          </ul>
+        </div>
+        <div class="card" style="background: var(--primary-light); border-color: #bfdbfe;">
+          <h3 style="color: var(--primary);">🗺️ 聰明登山客的策略</h3>
+          <ul>
+            <li>每走一步，就在腦中更新整座山的「<strong>推測地形圖</strong>」。</li>
+            <li>同時標記出「已經探勘過」與「完全未知」的區域。</li>
+            <li>精挑細選下一個最可能藏有最高峰的位置前進。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 4: Why Not Traditional Search -->
+    <section class="slide">
+      <div class="tag">03 ｜ 方法比較</div>
+      <h2>為什麼不用傳統的搜尋方法？</h2>
+      <p class="subtitle">傳統搜尋方法不會「從過去的結果中學習」，在昂貴場景下效率極低。</p>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 24%;">搜尋方法</th>
+            <th style="width: 38%;">運作方式</th>
+            <th style="width: 38%;">在昂貴問題上的缺點</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>網格搜尋<br>(Grid Search)</strong></td>
+            <td>把所有參數切成固定格子，逐一排列組合測試。</td>
+            <td>參數一多會發生「維度災難」，測試次數呈指數暴增，成本無法負荷。</td>
+          </tr>
+          <tr>
+            <td><strong>隨機搜尋<br>(Random Search)</strong></td>
+            <td>在參數範圍內隨機抽樣進行測試。</td>
+            <td>純靠運氣盲猜，即使某區域已經測出高分，也不會主動往附近深入探索。</td>
+          </tr>
+          <tr>
+            <td><strong style="color: var(--primary);">貝葉斯最佳化<br>(Bayesian Opt.)</strong></td>
+            <td>利用歷史觀測建立機率模型，智慧挑選下一個測試點。</td>
+            <td>雖然每次決策需額外計算模型，但能大幅減少昂貴的實際實驗次數。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Slide 5: Core Component 1 - Surrogate Model -->
+    <section class="slide">
+      <div class="tag">04 ｜ 核心元件一</div>
+      <h2>代理模型 (Surrogate Model)</h2>
+      <p class="subtitle">既然真實函數測一次太貴，就先用便宜好算的「替身模型」來近似真實世界。</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>最常用替身：高斯過程 (Gaussian Process)</h3>
+          <p style="margin-bottom: 12px;">高斯過程不只給出單一預測值，而是為每個位置提供兩個關鍵資訊：</p>
+          <ul>
+            <li><strong>預測平均值 (μ)</strong>：推測該位置最可能出現的分數。</li>
+            <li><strong>不確定性 (σ)</strong>：衡量我們對這個推測有多沒把握。</li>
+            <li><strong>已測量點附近</strong>：不確定區間極窄，代表高度把握。</li>
+            <li><strong>未探索空白區</strong>：不確定區間很寬，充滿未知潛力。</li>
+          </ul>
+        </div>
+        <div class="visual-box">
+          <svg viewBox="0 0 400 240" width="100%" height="225">
+            <!-- Grid lines -->
+            <line x1="30" y1="190" x2="380" y2="190" stroke="#cbd5e1" stroke-width="1.5" />
+            <line x1="30" y1="30" x2="30" y2="190" stroke="#cbd5e1" stroke-width="1.5" />
+            <!-- Uncertainty Band -->
+            <path d="M 45 125 Q 110 45, 180 115 T 300 60 T 365 130 L 365 175 T 300 145 T 180 135 Q 110 175, 45 145 Z" fill="rgba(37, 99, 235, 0.14)" />
+            <!-- Mean Curve -->
+            <path d="M 45 135 Q 110 110, 180 125 T 300 102 T 365 152" fill="none" stroke="#2563eb" stroke-width="3" />
+            <!-- Observed Points -->
+            <circle cx="45" cy="135" r="6" fill="#0d9488" />
+            <circle cx="180" cy="125" r="6" fill="#0d9488" />
+            <circle cx="365" cy="152" r="6" fill="#0d9488" />
+            <text x="40" y="24" fill="#475569" font-size="12" font-weight="600">藍線：預測平均值 μ ｜ 淺藍陰影：不確定性 σ</text>
+            <text x="40" y="218" fill="#0d9488" font-size="12" font-weight="600">● 綠點：已實際測量的資料點（該處不確定性趨近於 0）</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 6: Core Component 2 - Acquisition Function -->
+    <section class="slide">
+      <div class="tag">05 ｜ 核心元件二</div>
+      <h2>採集函數 (Acquisition Function)</h2>
+      <p class="subtitle">看著代理模型畫出的推測地圖，決定「下一步該去哪裡測試？」的決策指揮官。</p>
+      <div class="card" style="margin-bottom: 20px;">
+        <h3>為什麼需要採集函數？</h3>
+        <p>代理模型只告訴我們「每個位置可能的分數與不確定性」，但不會直接告訴我們該選哪一點。採集函數會將 <strong>平均值 (μ)</strong> 與 <strong>不確定性 (σ)</strong> 結合成一個「推薦分數」，分數最高的位置就是下一個測試目標。</p>
+      </div>
+      <div class="grid-2">
+        <div class="card" style="background: var(--secondary-light); border-color: #99f6e4;">
+          <h3 style="color: var(--secondary);">✔ 計算成本極低</h3>
+          <p>採集函數是在「代理模型」上運算，不需要啟動真實實驗，幾毫秒內就能找出最佳推薦點。</p>
+        </div>
+        <div class="card" style="background: var(--primary-light); border-color: #bfdbfe;">
+          <h3 style="color: var(--primary);">✔ 避免盲目衝動</h3>
+          <p>不會只盯著目前最高分，也不會無止盡亂逛，而是透過數學規則理性權衡風險與報酬。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 7: Exploration vs Exploitation -->
+    <section class="slide">
+      <div class="tag">06 ｜ 核心權衡</div>
+      <h2>探索 vs. 利用 (Exploration vs. Exploitation)</h2>
+      <p class="subtitle">採集函數的靈魂，在於平衡「穩健深挖」與「大膽冒險」兩種策略。</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3 style="color: var(--secondary);">🎯 利用 (Exploitation)</h3>
+          <p style="margin-bottom: 10px;"><strong>做法：</strong>專注在「目前已知分數最高」的區域附近繼續微調測試（看重高平均值 μ）。</p>
+          <p><strong>風險：</strong>如果只做利用，很容易卡在「局部小山丘（Local Optimum）」，永遠不知道遠方還有更高的聖母峰。</p>
+        </div>
+        <div class="card">
+          <h3 style="color: var(--amber);">🧭 探索 (Exploration)</h3>
+          <p style="margin-bottom: 10px;"><strong>做法：</strong>前往「從沒去過、不確定性最高」的空白區域測試（看重高不確定性 σ）。</p>
+          <p><strong>風險：</strong>如果只做探索，就像隨機亂猜一樣，會把寶貴的實驗預算浪費在明顯低分的區域。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>動態平衡：</strong> 搜尋初期通常偏向「探索」以掌握全局輪廓；隨著資料變多，逐漸轉向「利用」以鎖定精確最高點。
+      </div>
+    </section>
+
+    <!-- Slide 8: Common Acquisition Functions -->
+    <section class="slide">
+      <div class="tag">07 ｜ 常見決策規則</div>
+      <h2>兩種最經典的採集函數</h2>
+      <p class="subtitle">實務上最常使用以下兩種方式來計算每個候選點的「推薦價值」：</p>
+      <div class="grid-2">
+        <div class="card">
+          <h3>1. 期望改進 (EI, Expected Improvement)</h3>
+          <p style="margin-bottom: 12px;">計算每個候選點「預期能比目前最佳紀錄進步多少」。</p>
+          <ul>
+            <li>同時考慮「超過目前最高分的機率」與「超過的幅度」。</li>
+            <li>在沒有明顯更高分機會的區域，EI 值會自動降為 0。</li>
+            <li><strong>特色：</strong>自動取得探索與利用的平衡，最廣泛使用。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>2. 上信賴界 (UCB, Upper Confidence Bound)</h3>
+          <p style="margin-bottom: 12px;">直接將「預測平均值」加上「加權後的不確定性」：</p>
+          <p style="margin-bottom: 12px;"><span class="formula-pill">分數 = 平均值 (μ) + κ × 不確定性 (σ)</span></p>
+          <ul>
+            <li><strong>κ (Kappa)</strong> 是可調整的冒險係數。</li>
+            <li>調大 κ 代表更愛探索未知；調小 κ 代表更保守穩健。</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 9: Complete BO Loop -->
+    <section class="slide">
+      <div class="tag">08 ｜ 運作流程</div>
+      <h2>Bayesian Optimization 完整四步迴圈</h2>
+      <p class="subtitle">透過「更新地圖 → 挑選下一點 → 實際測試 → 累積經驗」不斷迭代逼近最佳解。</p>
+      <div class="grid-2">
+        <div class="card">
+          <span class="step-num">STEP 1</span>
+          <h3>建立 / 更新代理模型</h3>
+          <p>將目前已收集到的歷史測試數據交給高斯過程，更新預測曲線與不確定區間。</p>
+        </div>
+        <div class="card">
+          <span class="step-num">STEP 2</span>
+          <h3>最大化採集函數</h3>
+          <p>在代理模型上計算採集函數（如 EI 或 UCB），選出分數最高的下一組參數 x。</p>
+        </div>
+        <div class="card">
+          <span class="step-num">STEP 3</span>
+          <h3>執行昂貴的真實評估</h3>
+          <p>將挑出的參數 x 投入真實黑箱環境測試（如訓練模型或實驗），取得真實結果 y。</p>
+        </div>
+        <div class="card">
+          <span class="step-num">STEP 4</span>
+          <h3>更新資料庫並重複迭代</h3>
+          <p>把新數據 (x, y) 寫入歷史紀錄，回到 Step 1 修正預測地圖，直到預算用完為止。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Slide 10: Applications & Summary -->
+    <section class="slide">
+      <div class="tag">09 ｜ 實務應用與總結</div>
+      <h2>實際應用場景與核心總結</h2>
+      <p class="subtitle">凡是符合「試錯成本極高、參數難以靠公式推導」的領域，都是 BO 的主場。</p>
+      <div class="grid-3">
+        <div class="card">
+          <h3>🤖 AI 超參數調校</h3>
+          <p>自動尋找神經網路的最佳學習率、層數與正則化比例，比人工手動試錯更快找到高準確率組合。</p>
+        </div>
+        <div class="card">
+          <h3>🧪 材料與藥物研發</h3>
+          <p>在極少的實體實驗次數內，快速鎖定強度最高的新合金配方或最具活性的分子結構。</p>
+        </div>
+        <div class="card">
+          <h3>⚙️ 工業製程與 A/B 測試</h3>
+          <p>減少產線停機調整或線上實驗對使用者的影響，用最少樣本快速收斂至最佳參數。</p>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>重點回顧：</strong> Bayesian Optimization 用「便宜的機率代理模型」取代盲目嘗試，透過採集函數平衡「探索未知」與「利用已知」，讓每一次昂貴的實驗都精準花在刀口上。
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <button id="prevBtn" onclick="changeSlide(-1)" disabled>← 上一頁</button>
+    <div style="color: var(--text-muted); font-size: 0.85rem;">可使用鍵盤左右方向鍵 (← / →) 或空白鍵切換投影片</div>
+    <button id="nextBtn" onclick="changeSlide(1)">下一頁 →</button>
+  </footer>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const progressBar = document.getElementById('progressBar');
+    const slideCounter = document.getElementById('slideCounter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function updateUI() {
+      slides.forEach((s, idx) => s.classList.toggle('active', idx === currentSlide));
+      const total = slides.length;
+      progressBar.style.width = `${((currentSlide + 1) / total) * 100}%`;
+      slideCounter.textContent = `${currentSlide + 1} / ${total}`;
+      prevBtn.disabled = currentSlide === 0;
+      nextBtn.disabled = currentSlide === total - 1;
+    }
+
+    function changeSlide(dir) {
+      const next = currentSlide + dir;
+      if (next >= 0 && next < slides.length) {
+        currentSlide = next;
+        updateUI();
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') changeSlide(1);
+      if (e.key === 'ArrowLeft') changeSlide(-1);
+    });
+  </script>
+</body>
+</html>
