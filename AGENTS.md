@@ -9,10 +9,10 @@ bayesopt-project/
 ├── AGENTS.md        # 本檔（人與 AI 共同維護）
 ├── sources/         # 原始 PDF（5 篇）。唯讀：AI 不得修改或刪除
 ├── wiki/            # AI 維護：s1–s5 來源頁 + index.md
-└── slides/          # AI 產生：bayesopt-deck.html
+└── index.html       # AI 產生：index.html
 ```
 
-- 知識只能單向流動：`sources/` → `wiki/` → `slides/`。簡報不得直接使用 `sources/` 或模型記憶中的內容。
+- 知識只能單向流動：`sources/` → `wiki/` → `index.html`。簡報不得直接使用 `sources/` 或模型記憶中的內容。
 - 若簡報需要 Wiki 沒有的事實，必須先回到 Ingest 補進 Wiki，再產生簡報。
 
 ## 2. 內容規則（Schema）
