@@ -29,7 +29,7 @@ bayesopt-project/
 - **Wiki：** 從 `wiki/index.md` 開始，依概念地圖（C1–C6）進入各來源頁。
 - **流程：** 看 `AGENTS.md`，第 5 節有 mermaid 流程圖（需支援 mermaid 的環境，如 GitHub 或 VS Code 預覽）。
 
-## 來源（5 篇，皆為一手）
+## 來源
 
 | ID | 來源 |
 |---|---|
