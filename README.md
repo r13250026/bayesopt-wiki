@@ -32,7 +32,7 @@ bayesopt-project/
 ## 來源（5 篇，皆為一手）
 
 | ID | 來源 |
-|---|---|---|
+|---|---|
 | S1 | Agnihotri & Batra, *Exploring Bayesian Optimization*, Distill, 2020 |
 | S2 | Frazier, *A Tutorial on Bayesian Optimization*, arXiv:1807.02811, 2018 |
 | S3 | Snoek, Larochelle & Adams, *Practical Bayesian Optimization of Machine Learning Algorithms*, NIPS 2012 |
