@@ -31,13 +31,13 @@ bayesopt-project/
 
 ## 來源（5 篇，皆為一手）
 
-| ID | 來源 | 讀取深度 |
+| ID | 來源 |
 |---|---|---|
-| S1 | Agnihotri & Batra, *Exploring Bayesian Optimization*, Distill, 2020 | 全文 |
-| S2 | Frazier, *A Tutorial on Bayesian Optimization*, arXiv:1807.02811, 2018 | 部分 |
-| S3 | Snoek, Larochelle & Adams, *Practical Bayesian Optimization of Machine Learning Algorithms*, NIPS 2012 | 僅摘要與前言 |
-| S4 | Malu, Dasarathy & Spanias, *Bayesian Optimization in High-Dimensional Spaces: A Brief Survey* | 全文 |
-| S5 | Foldager et al., *On the Role of Model Uncertainties in Bayesian Optimization*, PMLR v216 | 僅摘要開頭 |
+| S1 | Agnihotri & Batra, *Exploring Bayesian Optimization*, Distill, 2020 |
+| S2 | Frazier, *A Tutorial on Bayesian Optimization*, arXiv:1807.02811, 2018 |
+| S3 | Snoek, Larochelle & Adams, *Practical Bayesian Optimization of Machine Learning Algorithms*, NIPS 2012 |
+| S4 | Malu, Dasarathy & Spanias, *Bayesian Optimization in High-Dimensional Spaces: A Brief Survey* |
+| S5 | Foldager et al., *On the Role of Model Uncertainties in Bayesian Optimization*, PMLR v216 |
 
 PDF 檔請放入 `sources/`（S1 為網頁文章，可存成 PDF）。
 
@@ -55,7 +55,6 @@ sources/ → Ingest（讀取、標主張 ID、寫入前自檢）→ wiki/
 
 ## 目前狀態與已知限制
 
-- S3、S5 只讀到摘要層級，S2 只讀到 §4.1 開頭；Wiki 與簡報只引用該層級可支持的內容。
 - Lint 的機械檢查（孤兒頁、連結有效性等）目前為人工判斷，尚未用程式實際執行。
 - `AGENTS.md` 是在第一輪建 Wiki 與簡報之後整理而成，尚未用它從頭重跑驗證。
 - 簡報中的 Gaussian process 圖為示意圖，非實際資料。
